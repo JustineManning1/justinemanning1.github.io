@@ -12,7 +12,10 @@ export default function Experience() {
                 <h3>{job.role}</h3>
                 <p className="timeline-org">{job.company}</p>
               </div>
-              <p className="timeline-dates">{job.dates}</p>
+              <div className="timeline-dates-col">
+                <p className="timeline-dates">{job.dates}</p>
+                {job.note && <p className="timeline-note">{job.note}</p>}
+              </div>
             </div>
             <ul className="bullet-list">
               {job.bullets.map((bullet, i) => (

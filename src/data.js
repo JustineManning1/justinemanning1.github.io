@@ -6,26 +6,28 @@ export const profile = {
   email: "Justmanning97@gmail.com",
   resumeFile: "/Justine_Manning_Resume.docx",
   summary:
-    'Data Analyst with over 8 years of experience driving operational excellence through high-impact data storytelling and technical solutioning. Recently earned the Google Data Analytics Professional Certificate, mastering advanced SQL, Python, and R to automate workflows and enhance predictive capabilities. Proven track record of reducing the "cost to serve" and increasing ROI by developing interactive BI dashboards and performing complex risk assessments for executive leadership.',
+    'Data Analyst with over 8 years of experience turning operational and industry data into predictive models and executive-ready insights. Builds statistical and predictive models (Python, R, SQL) to forecast performance trends, alongside interactive BI dashboards that translate complex datasets into clear, decision-ready visuals. Google Data Analytics Professional Certificate holder with a proven record of reducing "cost to serve," improving operational performance, and increasing ROI through data-driven modeling and risk assessment for executive leadership.',
 };
 
 export const skillGroups = [
   {
-    title: "Data Analysis & Visualization",
+    title: "Data Analysis & Modeling",
     skills: [
+      "Predictive Modeling",
+      "Regression & Statistical Analysis",
+      "Forecasting & Trend Analysis",
       "SQL (MS SQL Server)",
-      "Tableau",
-      "Power BI",
-      "Pivot Tables",
-      "Trend Analysis",
-      "KPI Tracking",
+      "Python",
+      "R",
     ],
+  },
+  {
+    title: "BI & Visualization",
+    skills: ["Power BI", "Tableau", "DAX", "Pivot Tables", "KPI Tracking"],
   },
   {
     title: "Programming & Tools",
     skills: [
-      "Python",
-      "R",
       "JavaScript",
       "Jira Service Desk",
       "Citrix",
@@ -46,6 +48,12 @@ export const skillGroups = [
 ];
 
 export const projects = [
+  {
+    title: "Flight Delay Risk Prediction Model",
+    tools: ["Python", "R", "Regression Analysis", "Forecasting"],
+    description:
+      "Developed a statistical model using historical flight operations data to forecast delay risk and on-time performance, giving operations teams earlier visibility into schedule disruptions.",
+  },
   {
     title: "Real-Time KPI Dashboard Suite",
     tools: ["Power BI", "SQL Server", "DAX"],
@@ -83,6 +91,19 @@ export const experience = [
       "Lead Risk Assessments for project resolutions, ensuring 100% alignment between technical implementations and high-level business objectives.",
       "Partner with cross-functional executives to deliver research-backed recommendations and formal requirement documentation for systems integration.",
       "Present high-level project concepts using visual aids and case studies to secure stakeholder buy-in for operational changes.",
+    ],
+  },
+  {
+    company: "Spirit Airlines",
+    role: "Aviation Data Analyst (Contract)",
+    dates: "January 2025 – April 2026",
+    note: "Concurrent contract engagement",
+    bullets: [
+      "Built predictive models in Python and R to forecast flight delay risk and on-time performance, giving operations leadership advance visibility into schedule reliability.",
+      "Developed statistical models analyzing turnaround times, fuel consumption, and crew scheduling data to identify network-wide cost-saving opportunities.",
+      "Designed SQL-based ETL pipelines consolidating flight operations data from multiple source systems into a centralized analytics warehouse.",
+      "Built Power BI dashboards tracking on-time performance, load factor, and cost per available seat mile (CASM) for daily operations reviews.",
+      "Partnered with operations and finance stakeholders to translate model outputs into actionable route and staffing recommendations.",
     ],
   },
   {

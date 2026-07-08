@@ -474,10 +474,22 @@ main {
   margin-top: 2px;
 }
 
+.timeline-dates-col {
+  text-align: right;
+}
+
 .timeline-dates {
   color: var(--text-muted);
   font-size: 14px;
   white-space: nowrap;
+}
+
+.timeline-note {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: italic;
+  white-space: nowrap;
+  margin-top: 2px;
 }
 
 .bullet-list {
