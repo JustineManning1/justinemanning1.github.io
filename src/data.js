@@ -45,6 +45,33 @@ export const skillGroups = [
   },
 ];
 
+export const projects = [
+  {
+    title: "Real-Time KPI Dashboard Suite",
+    tools: ["Power BI", "SQL Server", "DAX"],
+    description:
+      "Architected a suite of interactive Power BI dashboards giving executive leadership real-time visibility into business-critical KPIs and financial metrics, replacing static monthly reports with live, self-service views.",
+  },
+  {
+    title: "Cost-to-Serve Reduction Analysis",
+    tools: ["SQL", "Tableau", "Trend Analysis"],
+    description:
+      "Mined complex operational datasets with SQL and Tableau to surface process inefficiencies, driving initiatives that reduced cost-to-serve and improved customer retention.",
+  },
+  {
+    title: "Systems Integration Risk Assessment Framework",
+    tools: ["Risk Assessment", "Requirements Documentation"],
+    description:
+      "Led risk assessments for cross-functional project resolutions and produced formal requirement documentation, keeping technical implementations 100% aligned with business objectives.",
+  },
+  {
+    title: "Workforce Analytics & Staffing Optimization",
+    tools: ["Aspect", "Avaya", "Google Workspace", "Microsoft Office"],
+    description:
+      "Engineered centralized data tracking for call volumes across a 24-person team, giving leadership the visibility to pinpoint productivity trends and right-size staffing.",
+  },
+];
+
 export const experience = [
   {
     company: "Brink's Home Security",

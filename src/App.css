@@ -152,6 +152,34 @@ main {
   color: var(--text);
 }
 
+/* Projects */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.project-card {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  border-top: 3px solid var(--accent);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.project-card h3 {
+  font-size: 17px;
+}
+
+.project-description {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
 /* Timeline (Experience / Education) */
 .timeline {
   display: flex;
