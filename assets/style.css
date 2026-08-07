@@ -130,3 +130,42 @@ nav.links a:hover::after,nav.links a.on::after{right:0}
 @supports (animation-timeline:scroll()){body::after{content:"";position:fixed;top:0;left:0;width:100%;height:3px;z-index:100;transform-origin:0 50%;background:linear-gradient(90deg,var(--accent),var(--cyan),var(--gold));animation:scrollbar linear both;animation-timeline:scroll(root)}}
 @keyframes scrollbar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 footer{position:relative;overflow:hidden;background:radial-gradient(800px 400px at 85% -20%,#1C4472 0,transparent 60%),var(--ink)}
+
+/* ===== v2: dark mode, editorial type, data-line hero, tabular numerals ===== */
+:root{color-scheme:light}
+:root[data-theme="dark"]{color-scheme:dark;--paper:#0A1421;--grid:#152539;--ink:#E8EFF8;--ink-soft:#A3B5CC;--card:#101E30;--accent:#67B0F5;--accent-soft:#17324E;--money:#43D391;--money-soft:#123024;--gold:#E5C56B;--gold-soft:#2B2515;--gold-dark:#F0DB9B;--alert:#EA7264;--lift:0 1px 2px rgba(0,0,0,.45),0 16px 34px -18px rgba(0,0,0,.75);--lift-hi:0 2px 6px rgba(0,0,0,.5),0 30px 56px -26px rgba(0,0,0,.85)}
+[data-theme="dark"] header{background:rgba(10,20,33,.72);border-bottom-color:rgba(255,255,255,.08)}
+[data-theme="dark"] .resume,[data-theme="dark"] .dash,[data-theme="dark"] .hub-card,[data-theme="dark"] .value-row .v,[data-theme="dark"] .story .cell{background:var(--card);border-color:rgba(255,255,255,.08)}
+[data-theme="dark"] .trust-strip{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+[data-theme="dark"] .synthetic-banner{background:rgba(229,197,107,.10);border-color:rgba(229,197,107,.25);color:#E5C56B}
+[data-theme="dark"] .insight-bar{background:rgba(229,197,107,.09);border-color:rgba(229,197,107,.22)}
+[data-theme="dark"] .kpi,[data-theme="dark"] .metric-row .metric,[data-theme="dark"] .toggles button{border-color:rgba(255,255,255,.08)}
+[data-theme="dark"] .skill-pills span:not(.hot){background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.10)}
+[data-theme="dark"] .btn.ghost{border-color:rgba(255,255,255,.22);color:var(--ink)}
+[data-theme="dark"] .code-card{border-color:rgba(255,255,255,.10)}
+[data-theme="dark"] footer{background:radial-gradient(800px 400px at 85% -20%,#123454 0,transparent 60%),#07111D}
+.theme-toggle{margin-left:10px;background:none;border:0;padding:4px;cursor:pointer;display:inline-flex;align-items:center;line-height:0}
+.theme-toggle .tt-track{width:44px;height:24px;border-radius:999px;background:var(--accent-soft);border:1px solid rgba(18,42,70,.14);display:inline-flex;align-items:center;padding:2px;transition:background .25s ease,border-color .25s ease}
+.theme-toggle .tt-thumb{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#F0D98A,#C9A227);box-shadow:0 1px 3px rgba(0,0,0,.4);transition:transform .3s cubic-bezier(.22,1,.36,1),background .3s ease}
+.theme-toggle[aria-pressed="true"] .tt-thumb{transform:translateX(20px);background:linear-gradient(135deg,#9BE3FF,#3FD0C9)}
+[data-theme="dark"] .theme-toggle .tt-track{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.18)}
+.hero-motif{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.7}
+.hero-motif path{fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke-dasharray:2600;stroke-dashoffset:2600;animation:draw 3.4s cubic-bezier(.22,1,.36,1) forwards}
+.hero-motif .l1{stroke:#3FD0C9;opacity:.8}
+.hero-motif .l2{stroke:#6E8BFF;opacity:.6;animation-delay:.4s}
+.hero-motif .l3{stroke:#C9A227;opacity:.5;animation-delay:.8s}
+.hero-motif .dot{fill:#3FD0C9;opacity:0;animation:pulse 3.2s ease-in-out 2.4s infinite}
+.hero-motif .d2{fill:#C9A227;animation-delay:3.6s}
+.hero-motif .d3{fill:#6E8BFF;animation-delay:4.8s}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes pulse{0%,100%{opacity:0}50%{opacity:.95}}
+.hero-band::after{opacity:.16}
+h1{font-size:clamp(2.3rem,5vw,3.7rem);line-height:1.03;letter-spacing:-.032em}
+h2{font-size:clamp(1.55rem,2.9vw,2.15rem);line-height:1.14;letter-spacing:-.022em}
+h3{letter-spacing:-.012em}
+.eyebrow{letter-spacing:.22em;font-size:.68rem}
+.sub{font-size:1.03rem;line-height:1.62;max-width:58ch}
+.resume p,.resume li{max-width:74ch}
+.hub-desc{max-width:42ch}
+.kpi .num,.hub-val,.metric .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.counting{opacity:.999}
