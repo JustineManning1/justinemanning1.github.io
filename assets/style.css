@@ -169,3 +169,12 @@ h3{letter-spacing:-.012em}
 .hub-desc{max-width:42ch}
 .kpi .num,.hub-val,.metric .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
 .counting{opacity:.999}
+[data-theme="dark"] .dash-bar{background:rgba(255,255,255,.04)}
+[data-theme="dark"] .metric-row{background:rgba(255,255,255,.02)}
+[data-theme="dark"] .metric-row .metric{color:var(--ink-soft)}
+[data-theme="dark"] .metric-row .metric[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink)}
+[data-theme="dark"] .toggles button{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);color:var(--ink-soft)}
+[data-theme="dark"] .toggles button[aria-pressed="true"]{background:var(--accent);border-color:transparent;color:#0A1421}
+[data-theme="dark"] .chart-cell{border-color:rgba(255,255,255,.08)}
+[data-theme="dark"] .code-card .head{background:rgba(255,255,255,.05)}
+[data-theme="dark"] .dash-note{color:var(--ink-soft)}
