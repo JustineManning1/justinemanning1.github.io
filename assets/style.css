@@ -91,3 +91,42 @@ footer{border-top:4px solid var(--gold);background:var(--ink);color:#B9C9DD;padd
 footer a{color:#9FC1E8}
 footer h2{color:#fff}
 footer .row{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;font-family:var(--mono);font-size:.85rem}
+
+
+/* ===== sleek refresh: glass nav, aurora hero, lifting cards, scroll motion ===== */
+:root{--cyan:#3FD0C9;--violet:#6E8BFF;--lift:0 1px 2px rgba(18,42,70,.06),0 14px 30px -16px rgba(18,42,70,.30);--lift-hi:0 2px 4px rgba(18,42,70,.06),0 28px 52px -24px rgba(18,42,70,.45);--r:16px}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+header{position:sticky;top:0;z-index:50;background:rgba(247,249,252,.75);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid rgba(18,42,70,.08)}
+.logo span{background:linear-gradient(90deg,var(--accent),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+nav.links a{position:relative;transition:color .25s ease}
+nav.links a::after{content:"";position:absolute;left:0;right:100%;bottom:-6px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--cyan));transition:right .32s cubic-bezier(.22,1,.36,1)}
+nav.links a:hover::after,nav.links a.on::after{right:0}
+.hero-band{position:relative;overflow:hidden;background:radial-gradient(1100px 560px at 10% -15%,#1C4472 0,transparent 60%),radial-gradient(900px 500px at 92% 115%,#123454 0,transparent 55%),linear-gradient(160deg,#0E2540 0,#122A46 55%,#0A1930 100%)}
+.hero-band::before{content:"";position:absolute;inset:-35%;pointer-events:none;background:conic-gradient(from 180deg at 50% 50%,rgba(63,208,201,.12),rgba(110,139,255,.10),rgba(201,162,39,.14),rgba(63,208,201,.12));filter:blur(80px);opacity:.85;animation:aurora 30s linear infinite}
+.hero-band::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.45;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(75% 75% at 45% 40%,#000,transparent);mask-image:radial-gradient(75% 75% at 45% 40%,#000,transparent)}
+@keyframes aurora{to{transform:rotate(1turn)}}
+.hero-band .wrap{position:relative;z-index:1}
+.hero-band h1{letter-spacing:-.022em}
+.hero-band h1 em{background:linear-gradient(92deg,#F5D97A,#C9A227 55%,#FBEEB6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{border-radius:999px;transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .25s ease,background .25s ease,border-color .25s ease}
+.btn:hover{transform:translateY(-2px)}
+.btn.primary,.hero-band .btn.primary{background:linear-gradient(135deg,#E6C351,#C9A227);border-color:transparent;color:#10233C;box-shadow:0 12px 28px -14px rgba(201,162,39,.95)}
+.btn.ghost,.hero-band .btn.ghost{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.resume,.value-row .v,.hub-card,.dash{border-radius:var(--r);box-shadow:var(--lift)}
+.value-row .v,.hub-card{transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s ease}
+.value-row .v:hover{transform:translateY(-4px);box-shadow:var(--lift-hi)}
+.hub-card{position:relative;overflow:hidden}
+.hub-card::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,var(--accent),var(--cyan),var(--gold));transition:transform .38s cubic-bezier(.22,1,.36,1)}
+.hub-card:hover{transform:translateY(-6px);box-shadow:var(--lift-hi)}
+.hub-card:hover::before{transform:scaleX(1)}
+.hub-cta{display:inline-flex;align-items:center;gap:8px;transition:gap .22s ease}
+.hub-card:hover .hub-cta{gap:14px}
+.skill-pills span{transition:transform .2s ease,box-shadow .2s ease}
+.skill-pills span:hover{transform:translateY(-2px);box-shadow:var(--lift)}
+.kpi,.metric-row .metric,.toggles button{transition:background .2s ease,color .2s ease,transform .2s ease}
+.toggles button:hover{transform:translateY(-1px)}
+@supports (animation-timeline:view()){section h2,section .sub,.hub-grid,.value-row,.resume{animation:rise both;animation-timeline:view();animation-range:entry 0% cover 28%}}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@supports (animation-timeline:scroll()){body::after{content:"";position:fixed;top:0;left:0;width:100%;height:3px;z-index:100;transform-origin:0 50%;background:linear-gradient(90deg,var(--accent),var(--cyan),var(--gold));animation:scrollbar linear both;animation-timeline:scroll(root)}}
+@keyframes scrollbar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+footer{position:relative;overflow:hidden;background:radial-gradient(800px 400px at 85% -20%,#1C4472 0,transparent 60%),var(--ink)}
