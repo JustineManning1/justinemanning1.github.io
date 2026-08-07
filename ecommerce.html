@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-commerce operations — Justine Manning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="../index.html">justine<span>.analytics</span></a>
+  <nav class="links"><a href="../index.html">Resume</a><a href="ecommerce.html">E-commerce</a><a href="telecom.html">Telecom</a><a href="banking.html">Credit</a><a href="insurance.html">Claims</a><a href="hospital.html">Hospital</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:56px">
+  <div class="eyebrow">E-commerce operations · Amazon-inspired scenario</div>
+  <h1 style="max-width:24ch">Where returns were quietly eating margin</h1>
+  <div class="synthetic-banner">Synthetic dataset (~19K orders) built for demonstration — not affiliated with or sourced from any named company. Every figure below is computed from <b>data/ecommerce_orders.csv</b> in this repository.</div>
+
+  <div class="dash">
+    <div class="dash-bar">
+      <span class="title">E-commerce operations</span>
+      <div class="toggles" role="group" aria-label="Segment filter"><button aria-pressed="true" data-g="all">All</button><button aria-pressed="false" data-g="ap">Apparel</button><button aria-pressed="false" data-g="el">Electronics</button><button aria-pressed="false" data-g="ho">Home</button></div>
+    </div>
+    <div class="metric-row" role="group" aria-label="Metric selector"><button class="metric" aria-pressed="true" data-m="ret">Return rate</button><button class="metric" aria-pressed="false" data-m="rev">Revenue</button><button class="metric" aria-pressed="false" data-m="ship">Avg ship days</button><button class="metric" aria-pressed="false" data-m="orders">Orders</button></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="chart-grid">
+      <div class="chart-cell"><canvas id="mainChart" role="img" aria-label="Selected metric by month and segment"></canvas></div>
+      <div class="chart-cell"><canvas id="mixChart" role="img" aria-label="Volume mix by segment"></canvas></div>
+    </div>
+    <div class="insight-bar" id="insightBar"></div>
+    <div class="dash-note">Filter segments, switch metrics, hover the charts. The dashed marker shows when the intervention shipped.</div>
+  </div>
+
+  <section style="padding-bottom:20px">
+    <h2>The analysis</h2>
+    <div class="story">
+      <div class="cell"><b>Problem</b><p>Blended return rate looked "normal for retail," but margin kept eroding and no one could say which products were responsible.</p></div>
+      <div class="cell"><b>Approach</b><p>Decomposed returns by category and reason code, isolated apparel sizing as the driver, and modeled the margin impact of a size-guide intervention.</p></div>
+      <div class="cell"><b>Decision enabled</b><p>Apparel returns climbed to ~22% while other categories held steady — sizing, not product quality. After the April size-guide launch, apparel returns fall by more than a third.</p></div>
+    </div>
+    <span class="value-chip">Modeled impact: ~$310K/yr in avoided return processing + recovered margin</span>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The SQL behind this view</h2>
+    <p class="sub">These queries run against the raw CSV in this repo (load it into SQLite or DuckDB). The dashboard's aggregates are what these queries return.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>SQL · Return rate by category and month</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> category,
+       <span class="fn">strftime</span>(&#x27;%Y-%m&#x27;, order_date) <span class="kw">AS</span> month,
+       <span class="fn">ROUND</span>(100.0 * <span class="fn">AVG</span>(returned), 1) <span class="kw">AS</span> return_rate_pct,
+       <span class="fn">COUNT</span>(*) <span class="kw">AS</span> orders,
+       <span class="fn">ROUND</span>(<span class="fn">SUM</span>(revenue_usd), 0) <span class="kw">AS</span> revenue
+<span class="kw">FROM</span> ecommerce_orders
+<span class="kw">GROUP BY</span> category, month
+<span class="kw">ORDER BY</span> category, month;</pre></div><div class="code-card"><div class="head"><span>SQL · Margin recovered after the fix (window fn)</span><span>SQLite / DuckDB</span></div><pre><span class="kw">WITH</span> monthly <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> category, <span class="fn">strftime</span>(&#x27;%Y-%m&#x27;, order_date) <span class="kw">AS</span> month,
+         <span class="fn">AVG</span>(returned) <span class="kw">AS</span> ret_rate, <span class="fn">SUM</span>(revenue_usd) <span class="kw">AS</span> rev
+  <span class="kw">FROM</span> ecommerce_orders <span class="kw">GROUP BY</span> 1, 2)
+<span class="kw">SELECT</span> month, ret_rate,
+       ret_rate - <span class="fn">LAG</span>(ret_rate) <span class="kw">OVER</span> (<span class="kw">PARTITI<span class="kw">ON</span> BY</span> category <span class="kw">ORDER BY</span> month) <span class="kw">AS</span> mom_change,
+       <span class="fn">ROUND</span>(rev * (<span class="fn">FIRST_VALUE</span>(ret_rate) <span class="kw">OVER</span> w - ret_rate), 0) <span class="kw">AS</span> est_margin_recovered
+<span class="kw">FROM</span> monthly <span class="kw">WHERE</span> category = &#x27;Apparel&#x27;
+<span class="kw">WINDOW</span> w <span class="kw">AS</span> (<span class="kw">PARTITI<span class="kw">ON</span> BY</span> category <span class="kw">ORDER BY</span> month
+             <span class="kw">ROWS BETWEEN</span> UNBOUNDED PRECEDING <span class="kw">AND</span> UNBOUNDED PRECEDING);</pre></div></div>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The Power BI translation</h2>
+    <p class="sub">The same model expressed as DAX measures — how this dashboard is built when the delivery target is Power BI instead of the web.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>Power BI · Return rate measure</span><span>DAX</span></div><pre>Return Rate % =
+<span class="fn">DIVIDE</span> (
+    <span class="fn">CALCULATE</span> ( <span class="fn">COUNTROWS</span> ( Orders ), Orders[returned] = 1 ),
+    <span class="fn">COUNTROWS</span> ( Orders )
+) * 100</pre></div><div class="code-card"><div class="head"><span>Power BI · Returns vs pre-fix baseline</span><span>DAX</span></div><pre>Returns vs Baseline =
+<span class="kw">VAR</span> Baseline =
+    <span class="fn">CALCULATE</span> ( [Return Rate %],
+        <span class="fn">DATESBETWEEN</span> ( &#x27;Date&#x27;[Date], <span class="fn">DATE</span>(2025,8,1), <span class="fn">DATE</span>(2026,3,31) ) )
+<span class="kw">RETURN</span> [Return Rate %] - Baseline</pre></div></div>
+  </section>
+</div>
+
+<footer><div class="wrap row">
+  <span>Justine Manning — Senior Data & Business Analyst</span>
+  <span><a href="../index.html">Resume</a> · <a href="mailto:Justmanning97@gmail.com">Justmanning97@gmail.com</a></span>
+</div></footer>
+
+<script>
+const CONFIG = {
+  data: {
+  ap:{ name:'Apparel', color:'#B3382E', ret:[15.6, 15.4, 18.0, 20.5, 22.8, 21.3, 23.9, 22.0, 14.8, 12.2, 12.7, 7.8], rev:[31.7, 32.6, 34.4, 39.4, 47.5, 38.3, 35.1, 37.3, 38.5, 40.1, 40.6, 41.1], ship:[3.4, 3.4, 3.3, 3.3, 3.2, 3.1, 3.1, 3.1, 3.0, 3.0, 2.9, 2.9], orders:[520, 540, 560, 640, 780, 600, 590, 600, 620, 640, 660, 680] },
+  el:{ name:'Electronics', color:'#1B4F8A', ret:[8.4, 8.9, 8.0, 8.7, 8.4, 8.8, 9.6, 9.1, 7.5, 10.4, 8.2, 7.1], rev:[64.5, 68.8, 69.5, 79.9, 102.8, 71.0, 71.5, 69.4, 72.2, 73.4, 72.4, 77.1], ship:[3.5, 3.4, 3.3, 3.2, 3.2, 3.1, 3.0, 3.2, 3.0, 2.9, 2.9, 2.8], orders:[440, 450, 460, 540, 700, 480, 470, 475, 480, 490, 500, 510] },
+  ho:{ name:'Home', color:'#C9A227', ret:[6.6, 6.8, 5.1, 7.7, 7.3, 7.8, 7.2, 5.6, 6.0, 5.2, 6.4, 7.0], rev:[30.6, 33.2, 32.2, 37.5, 43.8, 33.8, 34.9, 34.3, 35.1, 35.6, 35.2, 35.8], ship:[3.4, 3.4, 3.3, 3.3, 3.2, 3.2, 3.1, 3.1, 3.0, 3.0, 3.0, 2.8], orders:[380, 385, 390, 430, 520, 400, 405, 410, 415, 420, 425, 430] }
+},
+  metrics: { ret:{label:'Return rate', unit:'%', dec:1, higherBetter:false, axis:[0, 28] }, rev:{label:'Revenue', unit:'K', dec:1, higherBetter:true, axis:[0, 120], pre:'$' }, ship:{label:'Avg ship days', unit:' days', dec:1, higherBetter:false, axis:[0, 5] }, orders:{label:'Orders', unit:'', dec:0, higherBetter:true, axis:[0, 2200] } },
+  insights: { ret:"Apparel returns climbed to ~22% while other categories held steady \u2014 sizing, not product quality. After the April size-guide launch, apparel returns fall by more than a third.", rev:"December peaks then normalizes, but the durable story is apparel revenue holding while its return rate collapses \u2014 margin recovered without discounting.", ship:"Ship times improve steadily all year; they were ruled out as a return driver early, which redirected the investigation to fit and sizing.", orders:"Order volume grows through the fix \u2014 returns were solved with information (size charts, fit reviews), not with restrictive return policy that suppresses purchases." },
+  volKey: 'orders',
+  defaultMetric: 'ret',
+  anno: { month:'Apr', label:"size guide + fit data shipped" },
+  mixTitle: 'Volume mix by segment'
+};
+</script>
+<script src="../assets/engine.js"></script>
+<script>buildDash(CONFIG);</script>
+</body></html>

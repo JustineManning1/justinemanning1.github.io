@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit risk analytics — Justine Manning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="../index.html">justine<span>.analytics</span></a>
+  <nav class="links"><a href="../index.html">Resume</a><a href="ecommerce.html">E-commerce</a><a href="telecom.html">Telecom</a><a href="banking.html">Credit</a><a href="insurance.html">Claims</a><a href="hospital.html">Hospital</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:56px">
+  <div class="eyebrow">Credit risk analytics · Capital One-inspired scenario</div>
+  <h1 style="max-width:24ch">Catching the delinquency wave before it broke</h1>
+  <div class="synthetic-banner">Synthetic dataset (~14.6K account-months) built for demonstration — not affiliated with or sourced from any named company. Every figure below is computed from <b>data/banking_accounts.csv</b> in this repository.</div>
+
+  <div class="dash">
+    <div class="dash-bar">
+      <span class="title">Credit risk analytics</span>
+      <div class="toggles" role="group" aria-label="Segment filter"><button aria-pressed="true" data-g="all">All</button><button aria-pressed="false" data-g="pr">Prime</button><button aria-pressed="false" data-g="np">Near-prime</button><button aria-pressed="false" data-g="sp">Subprime</button></div>
+    </div>
+    <div class="metric-row" role="group" aria-label="Metric selector"><button class="metric" aria-pressed="true" data-m="dq">30-day delinquency</button><button class="metric" aria-pressed="false" data-m="util">Avg utilization</button><button class="metric" aria-pressed="false" data-m="spend">Avg monthly spend</button><button class="metric" aria-pressed="false" data-m="accts">Accounts (sample)</button></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="chart-grid">
+      <div class="chart-cell"><canvas id="mainChart" role="img" aria-label="Selected metric by month and segment"></canvas></div>
+      <div class="chart-cell"><canvas id="mixChart" role="img" aria-label="Volume mix by segment"></canvas></div>
+    </div>
+    <div class="insight-bar" id="insightBar"></div>
+    <div class="dash-note">Filter segments, switch metrics, hover the charts. The dashed marker shows when the intervention shipped.</div>
+  </div>
+
+  <section style="padding-bottom:20px">
+    <h2>The analysis</h2>
+    <div class="story">
+      <div class="cell"><b>Problem</b><p>Portfolio delinquency was drifting up. Tightening approvals across the board would choke growth to fix a problem that might live in one segment.</p></div>
+      <div class="cell"><b>Approach</b><p>Segmented roll rates by risk tier and utilization band, identified near-prime + high-utilization as the driver, and targeted early-warning outreach at that intersection.</p></div>
+      <div class="cell"><b>Decision enabled</b><p>Near-prime delinquency climbed for seven straight months while prime barely moved — the stress was segment-specific, not economy-wide. March outreach bends the curve within two cycles.</p></div>
+    </div>
+    <span class="value-chip">Modeled impact: ~$2.4M/yr in avoided charge-offs at steady origination volume</span>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The SQL behind this view</h2>
+    <p class="sub">These queries run against the raw CSV in this repo (load it into SQLite or DuckDB). The dashboard's aggregates are what these queries return.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>SQL · Delinquency by segment and utilization band</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> segment,
+       <span class="kw">CASE</span> <span class="kw">WHEN</span> utilization_pct &gt; 80 <span class="kw">THEN</span> &#x27;80%+&#x27;
+            <span class="kw">WHEN</span> utilization_pct &gt; 50 <span class="kw">THEN</span> &#x27;51-80%&#x27;
+            <span class="kw">ELSE</span> &#x27;0-50%&#x27; <span class="kw">END</span> <span class="kw">AS</span> util_band,
+       <span class="fn">ROUND</span>(100.0 * <span class="fn">AVG</span>(delinquent_30d), 2) <span class="kw">AS</span> dq_pct,
+       <span class="fn">COUNT</span>(*) <span class="kw">AS</span> account_months
+<span class="kw">FROM</span> banking_accounts
+<span class="kw">GROUP BY</span> segment, util_band
+<span class="kw">ORDER BY</span> segment, dq_pct DESC;</pre></div><div class="code-card"><div class="head"><span>SQL · Seven-month delinquency trend (window fn)</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> month, segment,
+       <span class="fn">ROUND</span>(100.0 * <span class="fn">AVG</span>(delinquent_30d), 2) <span class="kw">AS</span> dq_pct,
+       <span class="fn">ROUND</span>(<span class="fn">AVG</span>(100.0 * delinquent_30d) <span class="kw">OVER</span> (
+           <span class="kw">PARTITI<span class="kw">ON</span> BY</span> segment <span class="kw">ORDER BY</span> month
+           <span class="kw">ROWS BETWEEN</span> 2 PRECEDING <span class="kw">AND</span> CURRENT ROW), 2) <span class="kw">AS</span> dq_3mo_avg
+<span class="kw">FROM</span> banking_accounts
+<span class="kw">GROUP BY</span> month, segment;</pre></div></div>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The Power BI translation</h2>
+    <p class="sub">The same model expressed as DAX measures — how this dashboard is built when the delivery target is Power BI instead of the web.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>Power BI · Delinquency measure</span><span>DAX</span></div><pre>Delinquency % =
+<span class="fn">DIVIDE</span> (
+    <span class="fn">CALCULATE</span> ( <span class="fn">COUNTROWS</span> ( Accts ), Accts[delinquent_30d] = 1 ),
+    <span class="fn">COUNTROWS</span> ( Accts )
+) * 100</pre></div><div class="code-card"><div class="head"><span>Power BI · Outreach trigger list</span><span>DAX</span></div><pre>Outreach List =
+<span class="fn">CALCULATE</span> (
+    DISTINCT<span class="fn">COUNT</span> ( Accts[account_id] ),
+    Accts[segment] = &quot;Near-prime&quot;,
+    Accts[utilization_pct] &gt; 80
+)</pre></div></div>
+  </section>
+</div>
+
+<footer><div class="wrap row">
+  <span>Justine Manning — Senior Data & Business Analyst</span>
+  <span><a href="../index.html">Resume</a> · <a href="mailto:Justmanning97@gmail.com">Justmanning97@gmail.com</a></span>
+</div></footer>
+
+<script>
+const CONFIG = {
+  data: {
+  pr:{ name:'Prime', color:'#1B4F8A', dq:[1.9, 0.6, 1.5, 1.9, 2.7, 1.9, 1.7, 1.2, 2.5, 1.5, 1.9, 1.2], util:[28, 28, 29, 29, 28, 29, 27, 28, 29, 28, 29, 30], spend:[1460, 1461, 1497, 1429, 1448, 1444, 1445, 1443, 1453, 1482, 1468, 1412], accts:[480, 480, 480, 480, 480, 480, 480, 480, 480, 480, 480, 480] },
+  np:{ name:'Near-prime', color:'#C9A227', dq:[2.8, 5.8, 3.3, 6.0, 4.4, 7.9, 6.5, 7.4, 4.7, 6.5, 7.0, 3.7], util:[52, 51, 51, 52, 51, 52, 50, 52, 52, 52, 54, 51], spend:[980, 1010, 971, 1019, 1000, 977, 1023, 1016, 996, 994, 962, 922], accts:[430, 430, 430, 430, 430, 430, 430, 430, 430, 430, 430, 430] },
+  sp:{ name:'Subprime', color:'#B3382E', dq:[11.0, 11.6, 12.9, 11.0, 11.6, 11.6, 15.5, 11.3, 11.0, 7.4, 11.6, 10.3], util:[71, 69, 71, 71, 71, 70, 70, 69, 71, 69, 71, 70], spend:[634, 666, 590, 614, 623, 590, 621, 664, 621, 607, 644, 591], accts:[310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310, 310] }
+},
+  metrics: { dq:{label:'30-day delinquency', unit:'%', dec:1, higherBetter:false, axis:[0, 12] }, util:{label:'Avg utilization', unit:'%', dec:0, higherBetter:false, axis:[0, 90] }, spend:{label:'Avg monthly spend', unit:'', dec:0, higherBetter:true, axis:[0, 1800], pre:'$' }, accts:{label:'Accounts (sample)', unit:'', dec:0, higherBetter:true, axis:[0, 1400] } },
+  insights: { dq:"Near-prime delinquency climbed for seven straight months while prime barely moved \u2014 the stress was segment-specific, not economy-wide. March outreach bends the curve within two cycles.", util:"Utilization above 80% carried a materially elevated delinquency risk. That single threshold became the trigger list for proactive outreach.", spend:"Spend held through the intervention \u2014 hardship programs and limit coaching, not account closures, so revenue and relationships survived the risk fix.", accts:"Stable sample sizes per segment keep the delinquency trends comparable month to month." },
+  volKey: 'accts',
+  defaultMetric: 'dq',
+  anno: { month:'Mar', label:"early-warning outreach begins" },
+  mixTitle: 'Volume mix by segment'
+};
+</script>
+<script src="../assets/engine.js"></script>
+<script>buildDash(CONFIG);</script>
+</body></html>

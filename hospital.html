@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hospital revenue cycle — Justine Manning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="../index.html">justine<span>.analytics</span></a>
+  <nav class="links"><a href="../index.html">Resume</a><a href="ecommerce.html">E-commerce</a><a href="telecom.html">Telecom</a><a href="banking.html">Credit</a><a href="insurance.html">Claims</a><a href="hospital.html">Hospital</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:56px">
+  <div class="eyebrow">Hospital revenue cycle · Texas state hospital-inspired scenario</div>
+  <h1 style="max-width:24ch">Six percent of revenue was leaking through one checkbox</h1>
+  <div class="synthetic-banner">Synthetic dataset (~9.5K encounters) built for demonstration — not affiliated with or sourced from any named company. Every figure below is computed from <b>data/hospital_encounters.csv</b> in this repository.</div>
+
+  <div class="dash">
+    <div class="dash-bar">
+      <span class="title">Hospital revenue cycle</span>
+      <div class="toggles" role="group" aria-label="Segment filter"><button aria-pressed="true" data-g="all">All</button><button aria-pressed="false" data-g="su">Surgical</button><button aria-pressed="false" data-g="me">Medical</button><button aria-pressed="false" data-g="be">Behavioral</button></div>
+    </div>
+    <div class="metric-row" role="group" aria-label="Metric selector"><button class="metric" aria-pressed="true" data-m="den">Claim denial rate</button><button class="metric" aria-pressed="false" data-m="alos">Avg length of stay</button><button class="metric" aria-pressed="false" data-m="chg">Avg charges</button><button class="metric" aria-pressed="false" data-m="enc">Encounters</button></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="chart-grid">
+      <div class="chart-cell"><canvas id="mainChart" role="img" aria-label="Selected metric by month and segment"></canvas></div>
+      <div class="chart-cell"><canvas id="mixChart" role="img" aria-label="Volume mix by segment"></canvas></div>
+    </div>
+    <div class="insight-bar" id="insightBar"></div>
+    <div class="dash-note">Filter segments, switch metrics, hover the charts. The dashed marker shows when the intervention shipped.</div>
+  </div>
+
+  <section style="padding-bottom:20px">
+    <h2>The analysis</h2>
+    <div class="story">
+      <div class="cell"><b>Problem</b><p>Claim denials were treated as a billing-office problem to be appealed after the fact — expensive, slow, and only partially successful.</p></div>
+      <div class="cell"><b>Approach</b><p>Classified denials by reason code and service line, traced 62% of surgical denials to missing prior auth, and moved the check upstream to scheduling.</p></div>
+      <div class="cell"><b>Decision enabled</b><p>Surgical denials ran nearly double the other lines, and 62% traced to one reason: missing prior authorization. The March scheduling checklist cuts surgical denials by more than half.</p></div>
+    </div>
+    <span class="value-chip">Modeled impact: ~$3.2M/yr in first-pass revenue vs. appeal-and-rework costs</span>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The SQL behind this view</h2>
+    <p class="sub">These queries run against the raw CSV in this repo (load it into SQLite or DuckDB). The dashboard's aggregates are what these queries return.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>SQL · Denial rate by service line and reason</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> service_line, denial_reason,
+       <span class="fn">COUNT</span>(*) <span class="kw">AS</span> denied_claims,
+       <span class="fn">ROUND</span>(100.0 * <span class="fn">COUNT</span>(*) / <span class="fn">SUM</span>(<span class="fn">COUNT</span>(*)) <span class="kw">OVER</span>
+             (<span class="kw">PARTITI<span class="kw">ON</span> BY</span> service_line), 1) <span class="kw">AS</span> pct_of_line_denials,
+       <span class="fn">ROUND</span>(<span class="fn">SUM</span>(charges_usd), 0) <span class="kw">AS</span> charges_at_risk
+<span class="kw">FROM</span> hospital_encounters
+<span class="kw">WHERE</span> claim_denied = 1
+<span class="kw">GROUP BY</span> service_line, denial_reason
+<span class="kw">ORDER BY</span> service_line, denied_claims DESC;</pre></div><div class="code-card"><div class="head"><span>SQL · Recovered revenue after the checklist</span><span>SQLite / DuckDB</span></div><pre><span class="kw">WITH</span> monthly <span class="kw">AS</span> (
+  <span class="kw">SELECT</span> service_line, <span class="fn">strftime</span>(&#x27;%Y-%m&#x27;, discharge_date) <span class="kw">AS</span> month,
+         <span class="fn">AVG</span>(claim_denied * 1.0) <span class="kw">AS</span> denial_rate,
+         <span class="fn">SUM</span>(charges_usd) <span class="kw">AS</span> charges
+  <span class="kw">FROM</span> hospital_encounters <span class="kw">GROUP BY</span> 1, 2)
+<span class="kw">SELECT</span> month,
+       <span class="fn">ROUND</span>(100 * denial_rate, 1) <span class="kw">AS</span> denial_pct,
+       <span class="fn">ROUND</span>(charges * (0.145 - denial_rate), 0) <span class="kw">AS</span> est_revenue_recovered
+<span class="kw">FROM</span> monthly
+<span class="kw">WHERE</span> service_line = &#x27;Surgical&#x27; <span class="kw">AND</span> month &gt;= &#x27;2026-03&#x27;;</pre></div></div>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The Power BI translation</h2>
+    <p class="sub">The same model expressed as DAX measures — how this dashboard is built when the delivery target is Power BI instead of the web.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>Power BI · Denial rate measure</span><span>DAX</span></div><pre>Denial % =
+<span class="fn">DIVIDE</span> (
+    <span class="fn">CALCULATE</span> ( <span class="fn">COUNTROWS</span> ( Enc ), Enc[claim_denied] = 1 ),
+    <span class="fn">COUNTROWS</span> ( Enc )
+) * 100</pre></div><div class="code-card"><div class="head"><span>Power BI · Charges at risk</span><span>DAX</span></div><pre>Charges At Risk =
+<span class="fn">CALCULATE</span> (
+    <span class="fn">SUM</span> ( Enc[charges_usd] ),
+    Enc[claim_denied] = 1,
+    Enc[denial_reason] = &quot;Missing prior auth&quot;
+)</pre></div></div>
+  </section>
+</div>
+
+<footer><div class="wrap row">
+  <span>Justine Manning — Senior Data & Business Analyst</span>
+  <span><a href="../index.html">Resume</a> · <a href="mailto:Justmanning97@gmail.com">Justmanning97@gmail.com</a></span>
+</div></footer>
+
+<script>
+const CONFIG = {
+  data: {
+  su:{ name:'Surgical', color:'#B3382E', den:[8.8, 13.2, 14.3, 14.0, 16.8, 11.8, 15.5, 17.2, 8.3, 5.9, 5.1, 5.4], alos:[4.8, 4.6, 4.7, 4.6, 4.9, 4.7, 4.7, 4.6, 4.7, 4.7, 4.6, 4.9], chg:[28.8, 27.8, 28.9, 28.5, 28.2, 30.0, 28.8, 28.1, 29.3, 29.6, 28.8, 30.3], enc:[240, 242, 245, 250, 262, 255, 252, 250, 252, 254, 256, 258] },
+  me:{ name:'Medical', color:'#1B4F8A', den:[7.4, 6.0, 8.3, 8.1, 7.1, 6.0, 7.3, 7.3, 3.0, 9.2, 9.2, 7.5], alos:[4.2, 4.1, 4.3, 4.0, 4.1, 4.1, 4.2, 4.1, 4.2, 4.2, 4.1, 4.1], chg:[16.8, 17.1, 17.1, 16.7, 16.9, 16.9, 16.9, 16.7, 16.9, 17.0, 16.9, 16.4], enc:[380, 382, 385, 395, 420, 400, 398, 396, 394, 392, 390, 388] },
+  be:{ name:'Behavioral', color:'#C9A227', den:[9.3, 10.6, 5.9, 8.4, 10.6, 11.5, 9.7, 11.0, 8.5, 5.3, 7.9, 8.0], alos:[7.1, 7.0, 6.9, 7.1, 6.8, 6.8, 6.8, 6.9, 7.1, 6.9, 6.9, 6.9], chg:[12.7, 12.8, 11.7, 13.2, 12.4, 13.1, 11.9, 12.0, 11.9, 11.5, 12.5, 12.4], enc:[150, 151, 152, 155, 160, 156, 155, 154, 153, 152, 151, 150] }
+},
+  metrics: { den:{label:'Claim denial rate', unit:'%', dec:1, higherBetter:false, axis:[0, 18] }, alos:{label:'Avg length of stay', unit:' days', dec:1, higherBetter:false, axis:[0, 9] }, chg:{label:'Avg charges', unit:'K', dec:1, higherBetter:true, axis:[0, 40], pre:'$' }, enc:{label:'Encounters', unit:'', dec:0, higherBetter:true, axis:[0, 1200] } },
+  insights: { den:"Surgical denials ran nearly double the other lines, and 62% traced to one reason: missing prior authorization. The March scheduling checklist cuts surgical denials by more than half.", alos:"Length of stay is flat-to-improving all year \u2014 clinical operations were fine. The revenue leak was administrative, which is exactly why it was fixable in one quarter.", chg:"Average charges are stable, so the denial-rate drop translates directly into recovered net revenue rather than case-mix shift.", enc:"Encounter volume held steady through the intervention \u2014 the fix added a checklist step, not scheduling friction." },
+  volKey: 'enc',
+  defaultMetric: 'den',
+  anno: { month:'Mar', label:"prior-auth checklist at scheduling" },
+  mixTitle: 'Volume mix by segment'
+};
+</script>
+<script src="../assets/engine.js"></script>
+<script>buildDash(CONFIG);</script>
+</body></html>

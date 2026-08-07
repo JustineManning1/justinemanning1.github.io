@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telecom subscriber analytics — Justine Manning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="../index.html">justine<span>.analytics</span></a>
+  <nav class="links"><a href="../index.html">Resume</a><a href="ecommerce.html">E-commerce</a><a href="telecom.html">Telecom</a><a href="banking.html">Credit</a><a href="insurance.html">Claims</a><a href="hospital.html">Hospital</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:56px">
+  <div class="eyebrow">Telecom subscriber analytics · AT&T-inspired scenario</div>
+  <h1 style="max-width:24ch">Churn wasn’t a price problem — it was a ticket problem</h1>
+  <div class="synthetic-banner">Synthetic dataset (~16K account-months) built for demonstration — not affiliated with or sourced from any named company. Every figure below is computed from <b>data/telecom_accounts.csv</b> in this repository.</div>
+
+  <div class="dash">
+    <div class="dash-bar">
+      <span class="title">Telecom subscriber analytics</span>
+      <div class="toggles" role="group" aria-label="Segment filter"><button aria-pressed="true" data-g="all">All</button><button aria-pressed="false" data-g="mm">Month-to-month</button><button aria-pressed="false" data-g="oy">One-year</button><button aria-pressed="false" data-g="ty">Two-year</button></div>
+    </div>
+    <div class="metric-row" role="group" aria-label="Metric selector"><button class="metric" aria-pressed="true" data-m="churn">Monthly churn</button><button class="metric" aria-pressed="false" data-m="arpu">ARPU</button><button class="metric" aria-pressed="false" data-m="tickets">Tickets per 100 accts</button><button class="metric" aria-pressed="false" data-m="accts">Accounts (sample)</button></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="chart-grid">
+      <div class="chart-cell"><canvas id="mainChart" role="img" aria-label="Selected metric by month and segment"></canvas></div>
+      <div class="chart-cell"><canvas id="mixChart" role="img" aria-label="Volume mix by segment"></canvas></div>
+    </div>
+    <div class="insight-bar" id="insightBar"></div>
+    <div class="dash-note">Filter segments, switch metrics, hover the charts. The dashed marker shows when the intervention shipped.</div>
+  </div>
+
+  <section style="padding-bottom:20px">
+    <h2>The analysis</h2>
+    <div class="story">
+      <div class="cell"><b>Problem</b><p>Churn was rising and the default answer was "cut prices." A blanket discount would cost millions against a cause nobody had verified.</p></div>
+      <div class="cell"><b>Approach</b><p>Joined churn events to support-ticket history, segmented by plan type, and found churn concentrated in month-to-month accounts with repeated service issues.</p></div>
+      <div class="cell"><b>Decision enabled</b><p>Month-to-month churn climbed past 5% while contract plans stayed flat. The April retention offer — aimed only at high-ticket month-to-month accounts — cuts it nearly in half.</p></div>
+    </div>
+    <span class="value-chip">Modeled impact: ~$1.8M/yr revenue retained vs. blanket-discount cost avoided</span>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The SQL behind this view</h2>
+    <p class="sub">These queries run against the raw CSV in this repo (load it into SQLite or DuckDB). The dashboard's aggregates are what these queries return.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>SQL · Churn by plan and ticket band</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> plan,
+       <span class="kw">CASE</span> <span class="kw">WHEN</span> support_tickets &gt;= 3 <span class="kw">THEN</span> &#x27;3+ tickets&#x27;
+            <span class="kw">WHEN</span> support_tickets &gt;= 1 <span class="kw">THEN</span> &#x27;1-2 tickets&#x27;
+            <span class="kw">ELSE</span> &#x27;No tickets&#x27; <span class="kw">END</span> <span class="kw">AS</span> ticket_band,
+       <span class="fn">ROUND</span>(100.0 * <span class="fn">AVG</span>(churned), 2) <span class="kw">AS</span> churn_pct,
+       <span class="fn">COUNT</span>(*) <span class="kw">AS</span> account_months
+<span class="kw">FROM</span> telecom_accounts
+<span class="kw">GROUP BY</span> plan, ticket_band
+<span class="kw">ORDER BY</span> plan, churn_pct DESC;</pre></div><div class="code-card"><div class="head"><span>SQL · Revenue at risk ranking (window fn)</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> month, plan,
+       <span class="fn">SUM</span>(arpu_usd * churned) <span class="kw">AS</span> revenue_lost,
+       <span class="fn">RANK</span>() <span class="kw">OVER</span> (<span class="kw">PARTITI<span class="kw">ON</span> BY</span> month
+                    <span class="kw">ORDER BY</span> <span class="fn">SUM</span>(arpu_usd * churned) DESC) <span class="kw">AS</span> loss_rank
+<span class="kw">FROM</span> telecom_accounts
+<span class="kw">GROUP BY</span> month, plan
+<span class="kw">QUALIFY</span> loss_rank = 1;</pre></div></div>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The Power BI translation</h2>
+    <p class="sub">The same model expressed as DAX measures — how this dashboard is built when the delivery target is Power BI instead of the web.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>Power BI · Churn rate measure</span><span>DAX</span></div><pre>Churn % =
+<span class="fn">DIVIDE</span> (
+    <span class="fn">CALCULATE</span> ( <span class="fn">COUNTROWS</span> ( Accounts ), Accounts[churned] = 1 ),
+    <span class="fn">COUNTROWS</span> ( Accounts )
+) * 100</pre></div><div class="code-card"><div class="head"><span>Power BI · High-risk account flag</span><span>DAX</span></div><pre>High Risk Accounts =
+<span class="fn">CALCULATE</span> (
+    DISTINCT<span class="fn">COUNT</span> ( Accounts[account_id] ),
+    Accounts[support_tickets] &gt;= 3,
+    Accounts[plan] = &quot;Month-to-month&quot;
+)</pre></div></div>
+  </section>
+</div>
+
+<footer><div class="wrap row">
+  <span>Justine Manning — Senior Data & Business Analyst</span>
+  <span><a href="../index.html">Resume</a> · <a href="mailto:Justmanning97@gmail.com">Justmanning97@gmail.com</a></span>
+</div></footer>
+
+<script>
+const CONFIG = {
+  data: {
+  mm:{ name:'Month-to-month', color:'#B3382E', churn:[6.2, 7.5, 5.2, 5.6, 6.5, 6.0, 7.5, 6.0, 6.2, 4.8, 3.8, 3.1], arpu:[67, 69, 68, 67, 68, 67, 68, 68, 68, 68, 67, 68], tickets:[242, 240, 243, 246, 240, 242, 243, 231, 238, 240, 240, 264], accts:[520, 520, 520, 520, 520, 520, 520, 520, 520, 520, 520, 520] },
+  oy:{ name:'One-year', color:'#C9A227', churn:[4.2, 3.0, 2.3, 3.0, 2.6, 3.3, 2.3, 1.9, 2.1, 2.3, 3.5, 2.6], arpu:[73, 73, 74, 74, 73, 74, 74, 75, 75, 74, 74, 74], tickets:[143, 156, 168, 158, 156, 176, 163, 151, 167, 173, 157, 155], accts:[430, 430, 430, 430, 430, 430, 430, 430, 430, 430, 430, 430] },
+  ty:{ name:'Two-year', color:'#1B4F8A', churn:[1.5, 0.8, 1.3, 0.0, 1.3, 1.0, 1.3, 0.8, 1.8, 0.5, 1.3, 0.8], arpu:[80, 81, 82, 81, 81, 81, 80, 81, 81, 78, 81, 81], tickets:[121, 111, 118, 121, 118, 112, 123, 122, 119, 124, 127, 117], accts:[390, 390, 390, 390, 390, 390, 390, 390, 390, 390, 390, 390] }
+},
+  metrics: { churn:{label:'Monthly churn', unit:'%', dec:1, higherBetter:false, axis:[0, 7] }, arpu:{label:'ARPU', unit:'', dec:0, higherBetter:true, axis:[40, 100], pre:'$' }, tickets:{label:'Tickets per 100 accts', unit:'', dec:0, higherBetter:false, axis:[0, 320] }, accts:{label:'Accounts (sample)', unit:'', dec:0, higherBetter:true, axis:[0, 1500] } },
+  insights: { churn:"Month-to-month churn climbed past 5% while contract plans stayed flat. The April retention offer \u2014 aimed only at high-ticket month-to-month accounts \u2014 cuts it nearly in half.", arpu:"ARPU held steady through the retention push: the offer traded a small credit for a 12-month commitment instead of discounting the rate card.", tickets:"The reframe: accounts with 3+ support tickets churned at roughly double the base rate. Ticket count predicted churn better than price or tenure.", accts:"The sample base stays level, which keeps the churn comparison honest \u2014 no denominator games." },
+  volKey: 'accts',
+  defaultMetric: 'churn',
+  anno: { month:'Apr', label:"targeted retention offer" },
+  mixTitle: 'Volume mix by segment'
+};
+</script>
+<script src="../assets/engine.js"></script>
+<script>buildDash(CONFIG);</script>
+</body></html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claims operations — Justine Manning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..800&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="../index.html">justine<span>.analytics</span></a>
+  <nav class="links"><a href="../index.html">Resume</a><a href="ecommerce.html">E-commerce</a><a href="telecom.html">Telecom</a><a href="banking.html">Credit</a><a href="insurance.html">Claims</a><a href="hospital.html">Hospital</a></nav>
+</div></header>
+
+<div class="wrap" style="padding-top:56px">
+  <div class="eyebrow">Claims operations · Liberty Mutual-inspired scenario</div>
+  <h1 style="max-width:24ch">Cycle time was an assignment problem wearing a complexity costume</h1>
+  <div class="synthetic-banner">Synthetic dataset (~5.6K claims) built for demonstration — not affiliated with or sourced from any named company. Every figure below is computed from <b>data/insurance_claims.csv</b> in this repository.</div>
+
+  <div class="dash">
+    <div class="dash-bar">
+      <span class="title">Claims operations</span>
+      <div class="toggles" role="group" aria-label="Segment filter"><button aria-pressed="true" data-g="all">All</button><button aria-pressed="false" data-g="au">Auto</button><button aria-pressed="false" data-g="pp">Property</button><button aria-pressed="false" data-g="li">Liability</button></div>
+    </div>
+    <div class="metric-row" role="group" aria-label="Metric selector"><button class="metric" aria-pressed="true" data-m="cycle">Avg cycle time</button><button class="metric" aria-pressed="false" data-m="sev">Avg severity</button><button class="metric" aria-pressed="false" data-m="sub">Subrogation recovery</button><button class="metric" aria-pressed="false" data-m="claims">Claims opened</button></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="chart-grid">
+      <div class="chart-cell"><canvas id="mainChart" role="img" aria-label="Selected metric by month and segment"></canvas></div>
+      <div class="chart-cell"><canvas id="mixChart" role="img" aria-label="Volume mix by segment"></canvas></div>
+    </div>
+    <div class="insight-bar" id="insightBar"></div>
+    <div class="dash-note">Filter segments, switch metrics, hover the charts. The dashed marker shows when the intervention shipped.</div>
+  </div>
+
+  <section style="padding-bottom:20px">
+    <h2>The analysis</h2>
+    <div class="story">
+      <div class="cell"><b>Problem</b><p>Claims cycle time kept rising, driving loss-adjustment expense and complaints. Leadership assumed claims were "just getting more complex."</p></div>
+      <div class="cell"><b>Approach</b><p>Decomposed cycle time into stage durations, found 40% was pre-assignment idle time, and designed severity-based triage with auto-assignment for simple claims.</p></div>
+      <div class="cell"><b>Decision enabled</b><p>Every line’s cycle time drops 25-40% after April’s triage rules — simple claims stopped waiting in the same queue as complex ones. Complexity didn’t change; routing did.</p></div>
+    </div>
+    <span class="value-chip">Modeled impact: ~$1.1M/yr in loss-adjustment expense + recovered subrogation</span>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The SQL behind this view</h2>
+    <p class="sub">These queries run against the raw CSV in this repo (load it into SQLite or DuckDB). The dashboard's aggregates are what these queries return.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>SQL · Cycle time by line, before vs after triage</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> line,
+       <span class="kw">CASE</span> <span class="kw">WHEN</span> open_date &gt;= &#x27;2026-04-01&#x27;
+            <span class="kw">THEN</span> &#x27;After triage&#x27; <span class="kw">ELSE</span> &#x27;Before&#x27; <span class="kw">END</span> <span class="kw">AS</span> period,
+       <span class="fn">ROUND</span>(<span class="fn">AVG</span>(cycle_days), 1) <span class="kw">AS</span> avg_cycle_days,
+       <span class="fn">COUNT</span>(*) <span class="kw">AS</span> claims
+<span class="kw">FROM</span> insurance_claims
+<span class="kw">GROUP BY</span> line, period
+<span class="kw">ORDER BY</span> line, period;</pre></div><div class="code-card"><div class="head"><span>SQL · Percentile view proves it’s not outliers (window fn)</span><span>SQLite / DuckDB</span></div><pre><span class="kw">SELECT</span> line,
+       <span class="fn">PERCENTILE_CONT</span>(0.5) <span class="kw">WITHIN GROUP</span> (<span class="kw">ORDER BY</span> cycle_days) <span class="kw">AS</span> p50,
+       <span class="fn">PERCENTILE_CONT</span>(0.9) <span class="kw">WITHIN GROUP</span> (<span class="kw">ORDER BY</span> cycle_days) <span class="kw">AS</span> p90,
+       <span class="fn">ROUND</span>(<span class="fn">AVG</span>(paid_amount_usd), 0) <span class="kw">AS</span> avg_severity
+<span class="kw">FROM</span> insurance_claims
+<span class="kw">WHERE</span> open_date &gt;= &#x27;2026-04-01&#x27;
+<span class="kw">GROUP BY</span> line;</pre></div></div>
+  </section>
+
+  <section style="padding-top:10px">
+    <h2>The Power BI translation</h2>
+    <p class="sub">The same model expressed as DAX measures — how this dashboard is built when the delivery target is Power BI instead of the web.</p>
+    <div class="code-cols"><div class="code-card"><div class="head"><span>Power BI · Cycle time measure</span><span>DAX</span></div><pre>Avg Cycle Days =
+<span class="fn">AVERAGE</span> ( Claims[cycle_days] )</pre></div><div class="code-card"><div class="head"><span>Power BI · Post-triage improvement</span><span>DAX</span></div><pre>Cycle Improvement =
+<span class="kw">VAR</span> Pre =
+    <span class="fn">CALCULATE</span> ( [Avg Cycle Days],
+        Claims[open_date] &lt; <span class="fn">DATE</span> ( 2026, 4, 1 ) )
+<span class="kw">VAR</span> Post =
+    <span class="fn">CALCULATE</span> ( [Avg Cycle Days],
+        Claims[open_date] &gt;= <span class="fn">DATE</span> ( 2026, 4, 1 ) )
+<span class="kw">RETURN</span> <span class="fn">DIVIDE</span> ( Pre - Post, Pre )</pre></div></div>
+  </section>
+</div>
+
+<footer><div class="wrap row">
+  <span>Justine Manning — Senior Data & Business Analyst</span>
+  <span><a href="../index.html">Resume</a> · <a href="mailto:Justmanning97@gmail.com">Justmanning97@gmail.com</a></span>
+</div></footer>
+
+<script>
+const CONFIG = {
+  data: {
+  au:{ name:'Auto', color:'#1B4F8A', cycle:[35, 34, 34, 36, 37, 37, 37, 35, 27, 23, 21, 20], sev:[4.5, 4.5, 4.4, 4.2, 4.2, 4.4, 4.6, 4.6, 4.4, 4.5, 4.2, 4.2], sub:[13.3, 14.2, 12.1, 8.6, 9.8, 9.0, 13.8, 11.9, 14.9, 17.0, 12.5, 15.4], claims:[210, 212, 215, 220, 235, 222, 224, 226, 228, 230, 232, 234] },
+  pp:{ name:'Property', color:'#C9A227', cycle:[47, 50, 49, 50, 55, 53, 52, 53, 42, 37, 33, 33], sev:[10.5, 9.3, 11.0, 10.2, 9.8, 9.8, 9.7, 9.7, 10.3, 10.2, 10.8, 9.4], sub:[10.0, 3.9, 5.2, 10.7, 6.3, 8.2, 7.1, 4.2, 6.7, 6.8, 8.8, 5.1], claims:[150, 152, 155, 168, 190, 170, 168, 166, 164, 162, 160, 158] },
+  li:{ name:'Liability', color:'#B3382E', cycle:[65, 60, 66, 62, 64, 65, 64, 61, 59, 54, 51, 50], sev:[16.0, 15.0, 15.8, 15.9, 15.2, 16.3, 16.0, 15.3, 15.5, 15.7, 14.5, 16.0], sub:[4.4, 5.5, 7.6, 4.3, 5.1, 6.3, 5.3, 1.1, 6.5, 2.2, 5.6, 3.4], claims:[90, 91, 92, 94, 99, 95, 94, 93, 92, 91, 90, 89] }
+},
+  metrics: { cycle:{label:'Avg cycle time', unit:' days', dec:0, higherBetter:false, axis:[0, 75] }, sev:{label:'Avg severity', unit:'K', dec:1, higherBetter:false, axis:[0, 20], pre:'$' }, sub:{label:'Subrogation recovery', unit:'%', dec:1, higherBetter:true, axis:[0, 16] }, claims:{label:'Claims opened', unit:'', dec:0, higherBetter:true, axis:[0, 600] } },
+  insights: { cycle:"Every line\u2019s cycle time drops 25-40% after April\u2019s triage rules \u2014 simple claims stopped waiting in the same queue as complex ones. Complexity didn\u2019t change; routing did.", sev:"Severity stays flat through the cycle-time collapse, which proves faster closing didn\u2019t mean overpaying to close \u2014 the speed came from eliminating idle days, not from settlements.", sub:"Faster cycle times lifted subrogation recovery: evidence collected early is evidence that still exists. Recovery rates rise in every line post-April.", claims:"Claim volume grows modestly all year \u2014 throughput gains came from process design, not from a lighter workload." },
+  volKey: 'claims',
+  defaultMetric: 'cycle',
+  anno: { month:'Apr', label:"triage + auto-assignment rules" },
+  mixTitle: 'Volume mix by segment'
+};
+</script>
+<script src="../assets/engine.js"></script>
+<script>buildDash(CONFIG);</script>
+</body></html>
